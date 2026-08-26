@@ -8,12 +8,12 @@ from __future__ import annotations
 
 import re
 import string
-import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 from voceo.errores import ErrorDePlantilla
+from voceo.lector_toml import ErrorTOML, leer as leer_toml
 from voceo.rutas import PLANTILLAS_POR_DEFECTO
 from voceo.texto import deletrear
 
@@ -91,8 +91,8 @@ def cargar(ruta: Path | None = None) -> dict[str, Plantilla]:
     if not archivo.is_file():
         raise ErrorDePlantilla(f"No se encontró el archivo de plantillas: {archivo}")
     try:
-        datos = tomllib.loads(archivo.read_text(encoding="utf-8"))
-    except tomllib.TOMLDecodeError as exc:
+        datos = leer_toml(archivo.read_text(encoding="utf-8"))
+    except ErrorTOML as exc:
         raise ErrorDePlantilla(f"{archivo} no es un TOML válido: {exc}") from exc
 
     plantillas: dict[str, Plantilla] = {}

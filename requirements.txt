@@ -1,5 +1,6 @@
 # Dependencias mínimas para usar el programa con el proveedor por defecto.
 edge-tts>=7.0
+tomli>=2.0; python_version < "3.11"
 
 # Recomendado: trae un ffmpeg listo para usar (campanilla, repeticiones,
 # normalización de volumen). Alternativa: instalar ffmpeg en el sistema.

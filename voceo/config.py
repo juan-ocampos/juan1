@@ -4,12 +4,12 @@ from __future__ import annotations
 
 import os
 import re
-import tomllib
 from dataclasses import dataclass, fields, replace
 from pathlib import Path
 from typing import Any
 
 from voceo.errores import ErrorDeConfiguracion
+from voceo.lector_toml import ErrorTOML, leer as leer_toml
 from voceo.rutas import PLANTILLAS_POR_DEFECTO
 
 # Nombre del archivo de configuración que se busca en el directorio actual.
@@ -181,8 +181,8 @@ def cargar(ruta: Path | None = None, perfil: str | None = None) -> Config:
     datos: dict[str, Any] = {}
     if archivo is not None:
         try:
-            datos = tomllib.loads(archivo.read_text(encoding="utf-8"))
-        except tomllib.TOMLDecodeError as exc:
+            datos = leer_toml(archivo.read_text(encoding="utf-8"))
+        except ErrorTOML as exc:
             raise ErrorDeConfiguracion(f"{archivo} no es un TOML válido: {exc}") from exc
         config = aplicar(config, datos, str(archivo))
 
@@ -204,8 +204,8 @@ def perfiles_disponibles(ruta: Path | None = None) -> list[str]:
     if archivo is None or not archivo.is_file():
         return []
     try:
-        datos = tomllib.loads(archivo.read_text(encoding="utf-8"))
-    except tomllib.TOMLDecodeError:
+        datos = leer_toml(archivo.read_text(encoding="utf-8"))
+    except ErrorTOML:
         return []
     return sorted(datos.get("perfiles", {}))
 

@@ -170,3 +170,20 @@ def test_doctor(con_config, capsys):
 def test_proveedor_desconocido_en_la_cli(con_config, capsys):
     with pytest.raises(SystemExit):
         main(["generar", "Hola", "--proveedor", "inventado"])
+
+
+def test_una_tuberia_cerrada_no_revienta(con_config, monkeypatch):
+    """`voceo plantillas | head` cierra la tubería: no debe salir una traza."""
+    import voceo.cli as cli
+
+    desviada = []
+
+    def tuberia_rota(mensaje=""):
+        raise BrokenPipeError(32, "Broken pipe")
+
+    monkeypatch.setattr(cli, "_escribir", tuberia_rota)
+    # Sin esto, el redirigido al vacío se llevaría por delante la captura de pytest.
+    monkeypatch.setattr(cli.os, "dup2", lambda *args: desviada.append(args))
+
+    assert main(["plantillas"]) == 0
+    assert desviada, "la salida debería redirigirse al vacío"

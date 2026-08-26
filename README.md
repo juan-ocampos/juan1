@@ -23,7 +23,7 @@ voceo generar "Atención, señores visitantes. El centro comercial cierra en qui
 
 ## Instalación
 
-Requiere **Python 3.11 o superior**. Compruébalo antes de nada:
+Requiere **Python 3.10 o superior**. Compruébalo antes de nada:
 
 ```bash
 python3 --version
@@ -299,6 +299,7 @@ voceo/
   lote.py           generación desde CSV
   proveedores/      edge, openai, elevenlabs, piper
   datos/            plantillas incluidas
+  lector_toml.py    lectura de TOML compatible con Python 3.10
 ```
 
 ## Licencia

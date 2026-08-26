@@ -7,7 +7,7 @@ name = "voceo"
 version = "0.1.0"
 description = "Genera audios MP3 con voz natural para el voceo de un centro comercial"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.10"
 license = { text = "MIT" }
 authors = [{ name = "Juan Ocampos" }]
 keywords = ["tts", "texto a voz", "megafonía", "centro comercial", "mp3"]
@@ -17,11 +17,14 @@ classifiers = [
     "Intended Audience :: End Users/Desktop",
     "License :: OSI Approved :: MIT License",
     "Natural Language :: Spanish",
+    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Topic :: Multimedia :: Sound/Audio :: Speech",
 ]
 dependencies = [
     "edge-tts>=7.0",
+    # tomllib es parte de Python desde la 3.11; en la 3.10 se usa tomli.
+    "tomli>=2.0; python_version < '3.11'",
 ]
 
 [project.optional-dependencies]

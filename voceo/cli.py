@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from pathlib import Path
 
@@ -403,6 +404,15 @@ def main(argumentos: list[str] | None = None) -> int:
     except KeyboardInterrupt:
         _error("interrumpido")
         return 130
+    except BrokenPipeError:
+        # Pasa al encadenar con `| head`: el otro extremo cierra la tubería
+        # antes de que terminemos de escribir. No es un fallo del programa;
+        # se redirige la salida al vacío para que Python no se queje al salir.
+        try:
+            os.dup2(os.open(os.devnull, os.O_WRONLY), sys.stdout.fileno())
+        except OSError:
+            pass
+        return 0
 
 
 if __name__ == "__main__":
