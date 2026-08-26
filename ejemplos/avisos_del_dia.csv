@@ -1,0 +1,6 @@
+archivo,plantilla,texto,nombre,lugar,tienda,promocion,nivel,minutos,repetir,campanilla
+bienvenida.mp3,bienvenida,,,,,,,,,si
+llamado-gerente.mp3,llamado_persona,,Ana Martínez,el módulo de atención a clientes,,,,,,si
+promo-zapateria.mp3,promocion,,,,Calzado del Centro,el dos por uno en calzado de dama,nivel uno,,,si
+aviso-libre.mp3,,"Atención. Les recordamos que el estacionamiento cuenta con vigilancia las 24 horas.",,,,,,,,no
+cierre-15.mp3,cierre_proximo,,,,,,,quince,2,si

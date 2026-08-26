@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "voceo"
+version = "0.1.0"
+description = "Genera audios MP3 con voz natural para el voceo de un centro comercial"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Juan Ocampos" }]
+keywords = ["tts", "texto a voz", "megafonía", "centro comercial", "mp3"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: Spanish",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Multimedia :: Sound/Audio :: Speech",
+]
+dependencies = [
+    "edge-tts>=7.0",
+]
+
+[project.optional-dependencies]
+# Motores de voz alternativos
+openai = ["openai>=1.40"]
+elevenlabs = ["elevenlabs>=1.0"]
+piper = ["piper-tts>=1.2"]
+# ffmpeg empaquetado, para no tener que instalarlo a mano (sobre todo en Windows)
+ffmpeg = ["imageio-ffmpeg>=0.4.9"]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+voceo = "voceo.cli:main"
+
+[project.urls]
+Repositorio = "https://github.com/juan-ocampos/juan1"
+
+[tool.setuptools]
+packages = ["voceo", "voceo.proveedores"]
+
+[tool.setuptools.package-data]
+voceo = ["datos/*.toml"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

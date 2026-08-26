@@ -1,0 +1,53 @@
+# Configuración de Voceo.
+#
+# Copia este archivo como «voceo.toml» en la carpeta desde la que ejecutas el
+# programa (o en ~/.config/voceo/voceo.toml) y ajusta lo que necesites.
+# Todo lo que pongas aquí se puede sobrescribir en cada orden con opciones
+# de la línea de órdenes.
+
+# --- Motor de voz --------------------------------------------------------
+proveedor = "edge"              # edge | openai | elevenlabs | piper
+voz = "es-MX-DaliaNeural"       # ver todas con:  voceo voces
+velocidad = "-5%"               # negativo = más lento, se entiende mejor
+tono = "+0Hz"
+volumen = "+0%"
+
+# --- Salida --------------------------------------------------------------
+salida = "audio"                # carpeta donde se guardan los MP3
+bitrate = "160k"
+frecuencia = 44100
+canales = 1                     # 1 = mono, lo normal en megafonía
+
+# --- Producción del aviso ------------------------------------------------
+campanilla = true               # «din-don» antes del mensaje
+# campanilla_archivo = "campanilla.wav"   # usa tu propia campanilla
+silencio_inicial = 0.4
+silencio_final = 1.0
+repetir = 1
+pausa_repeticion = 1.5
+normalizar_volumen = true       # todos los avisos suenan igual de fuertes
+
+# --- Texto ---------------------------------------------------------------
+expandir_abreviaturas = true    # "Sr." -> "señor", "20%" -> "20 por ciento"
+marcadores = true               # interpreta [pausa] y [deletrear:ABC-123]
+
+# --- Plantillas ----------------------------------------------------------
+# plantillas = "mis_avisos.toml"
+
+# --- Perfiles ------------------------------------------------------------
+# Un perfil es un conjunto de ajustes que se activa con  --perfil NOMBRE.
+
+[perfiles.emergencia]
+velocidad = "-15%"
+repetir = 2
+pausa_repeticion = 2.0
+volumen = "+15%"
+
+[perfiles.promocion]
+voz = "es-MX-JorgeNeural"
+velocidad = "+0%"
+campanilla = true
+
+[perfiles.nocturno]
+volumen = "-10%"
+campanilla = false

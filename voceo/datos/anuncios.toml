@@ -1,0 +1,182 @@
+# Plantillas de voceo del centro comercial.
+#
+# Cada bloque es un aviso. Los huecos entre llaves ({nombre}) se rellenan al
+# generar el audio:
+#
+#     voceo plantilla llamado_persona --campo nombre="Juan Pérez"
+#
+# Claves de cada plantilla:
+#   texto        el aviso, con sus huecos                       (obligatorio)
+#   descripcion  para qué sirve, se muestra en `voceo plantillas`
+#   campos       lista de huecos admitidos
+#   deletrear    campos que se leen letra a letra (placas, códigos)
+#   por_defecto  valores que se usan si no se indica el campo
+#   ajustes      ajustes de audio propios de este aviso (velocidad, repetir…)
+
+[bienvenida]
+descripcion = "Apertura del centro comercial y bienvenida a los visitantes."
+campos = ["centro", "horario"]
+texto = """
+Muy buenos días. Bienvenidos a {centro}. Es un gusto recibirlos.
+Nuestro horario de hoy es de {horario}.
+Les deseamos una excelente visita.
+"""
+[bienvenida.por_defecto]
+centro = "nuestro centro comercial"
+horario = "diez de la mañana a nueve de la noche"
+
+[llamado_persona]
+descripcion = "Solicitar la presencia de una persona en un punto del centro."
+campos = ["nombre", "lugar"]
+texto = """
+Atención, señores visitantes. Se solicita la presencia
+del señor o señora {nombre} en {lugar}. [pausa]
+Repito: {nombre}, favor de presentarse en {lugar}. Muchas gracias.
+"""
+[llamado_persona.por_defecto]
+lugar = "el módulo de atención a clientes"
+
+[llamado_personal]
+descripcion = "Llamar a personal interno (limpieza, mantenimiento, seguridad)."
+campos = ["area", "lugar"]
+texto = """
+Atención. Se solicita personal de {area} en {lugar}. [pausa]
+Repito: personal de {area} en {lugar}, por favor.
+"""
+[llamado_personal.por_defecto]
+area = "limpieza"
+
+[menor_extraviado]
+descripcion = "Un menor se ha separado de su familia y se busca a sus padres."
+campos = ["descripcion_menor", "lugar"]
+texto = """
+Atención, señores visitantes. Tenemos con nosotros a un menor de edad
+que se encuentra separado de sus acompañantes. {descripcion_menor} [pausa]
+Solicitamos a sus familiares presentarse en {lugar}.
+Repito: solicitamos a los familiares del menor presentarse en {lugar}.
+"""
+deletrear = []
+[menor_extraviado.por_defecto]
+descripcion_menor = "Se encuentra acompañado por nuestro personal de seguridad."
+lugar = "el módulo de atención a clientes"
+[menor_extraviado.ajustes]
+repetir = 2
+velocidad = "-10%"
+
+[objeto_encontrado]
+descripcion = "Se ha encontrado un objeto y se busca a su dueño."
+campos = ["objeto", "lugar"]
+texto = """
+Atención, señores visitantes. Se ha encontrado {objeto}.
+Su propietario puede recogerlo en {lugar}, presentando una identificación.
+Muchas gracias.
+"""
+[objeto_encontrado.por_defecto]
+lugar = "el módulo de objetos perdidos"
+
+[vehiculo]
+descripcion = "Aviso al dueño de un vehículo (luces encendidas, mal estacionado)."
+campos = ["placas", "modelo", "color", "motivo"]
+deletrear = ["placas"]
+texto = """
+Atención. Se solicita al propietario del vehículo {color} {modelo},
+con placas {placas}, acudir a su automóvil. [pausa] Motivo: {motivo}.
+Repito: vehículo {color} {modelo}, placas {placas}. Muchas gracias.
+"""
+[vehiculo.por_defecto]
+motivo = "dejó las luces encendidas"
+color = ""
+modelo = ""
+
+[promocion]
+descripcion = "Promoción o descuento de una tienda del centro comercial."
+campos = ["tienda", "promocion", "vigencia", "nivel"]
+texto = """
+Atención, señores visitantes. {tienda}, ubicada en {nivel},
+les invita a aprovechar {promocion}. [pausa] {vigencia}.
+No deje pasar esta oportunidad. ¡Los esperamos!
+"""
+[promocion.por_defecto]
+nivel = "planta baja"
+vigencia = "Promoción válida el día de hoy"
+
+[evento]
+descripcion = "Anuncio de una actividad o evento dentro del centro."
+campos = ["evento", "lugar", "hora"]
+texto = """
+Atención, señores visitantes. Les recordamos que {evento}
+dará inicio a las {hora} en {lugar}. [pausa]
+La entrada es libre. ¡Los esperamos!
+"""
+
+[piso_mojado]
+descripcion = "Precaución por piso mojado o trabajos de limpieza."
+campos = ["lugar"]
+texto = """
+Atención. Por su seguridad, le pedimos transitar con precaución en {lugar},
+ya que el piso se encuentra húmedo. Gracias por su comprensión.
+"""
+[piso_mojado.por_defecto]
+lugar = "el área de pasillos"
+
+[cierre_proximo]
+descripcion = "Aviso de cierre en X minutos."
+campos = ["minutos", "centro"]
+texto = """
+Atención, señores visitantes. Les informamos que {centro}
+cerrará sus puertas en {minutos} minutos. [pausa]
+Les agradecemos concluir sus compras y dirigirse a las salidas.
+Gracias por su preferencia. Que tengan una excelente noche.
+"""
+[cierre_proximo.por_defecto]
+minutos = "quince"
+centro = "nuestro centro comercial"
+
+[cierre_estacionamiento]
+descripcion = "Aviso de cierre del estacionamiento."
+campos = ["hora"]
+texto = """
+Atención. Les informamos que nuestro estacionamiento cerrará a las {hora}.
+Le pedimos retirar su vehículo antes de esa hora. Muchas gracias.
+"""
+
+[simulacro]
+descripcion = "Aviso previo de simulacro de evacuación."
+campos = ["hora"]
+texto = """
+Atención, señores visitantes. Les informamos que a las {hora}
+se llevará a cabo un simulacro de evacuación. [pausa]
+Se trata únicamente de un ejercicio de seguridad.
+Le pedimos atender las indicaciones de nuestro personal. Muchas gracias.
+"""
+[simulacro.ajustes]
+velocidad = "-8%"
+
+[evacuacion]
+descripcion = "Evacuación real: instrucciones de salida. Voz lenta y repetida."
+campos = ["motivo"]
+texto = """
+Atención, señores visitantes. Su atención, por favor. [pausa]
+Por motivos de seguridad, {motivo}, le solicitamos dirigirse
+a la salida más cercana de manera ordenada. [pausa:2]
+No utilice los elevadores. Conserve la calma
+y siga las indicaciones de nuestro personal de seguridad. [pausa]
+Repito: diríjase a la salida más cercana de manera ordenada.
+"""
+[evacuacion.por_defecto]
+motivo = "y como medida preventiva"
+[evacuacion.ajustes]
+velocidad = "-15%"
+repetir = 2
+pausa_repeticion = 2.0
+silencio_final = 1.5
+
+[agradecimiento_cierre]
+descripcion = "Despedida al terminar el día."
+campos = ["centro"]
+texto = """
+Señores visitantes, {centro} ha cerrado sus puertas por el día de hoy.
+Agradecemos su visita y los esperamos mañana. Que tengan una excelente noche.
+"""
+[agradecimiento_cierre.por_defecto]
+centro = "nuestro centro comercial"

@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+
+# Audio generado
+audio/
+salida/
+*.mp3
+*.wav
+!ejemplos/**/*.mp3
+
+# Configuración local (puede contener claves de API)
+voceo.toml
+.env

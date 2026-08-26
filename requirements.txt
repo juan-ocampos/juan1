@@ -1,0 +1,11 @@
+# Dependencias mínimas para usar el programa con el proveedor por defecto.
+edge-tts>=7.0
+
+# Recomendado: trae un ffmpeg listo para usar (campanilla, repeticiones,
+# normalización de volumen). Alternativa: instalar ffmpeg en el sistema.
+imageio-ffmpeg>=0.4.9
+
+# Motores de voz opcionales (descomenta el que vayas a usar):
+# openai>=1.40
+# elevenlabs>=1.0
+# piper-tts>=1.2
