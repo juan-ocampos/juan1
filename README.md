@@ -23,13 +23,28 @@ voceo generar "Atención, señores visitantes. El centro comercial cierra en qui
 
 ## Instalación
 
-Requiere **Python 3.11 o superior**.
+Requiere **Python 3.11 o superior**. Compruébalo antes de nada:
+
+```bash
+python3 --version
+```
+
+Si es menor (macOS trae la 3.9 de fábrica), instala una versión moderna:
+`brew install python@3.12` en macOS, `sudo apt install python3.12-venv` en
+Debian/Ubuntu, o desde [python.org](https://www.python.org/downloads/).
 
 ```bash
 git clone https://github.com/juan-ocampos/juan1.git
 cd juan1
-pip install -e .[ffmpeg]
+python3 -m venv .venv
+source .venv/bin/activate          # Windows:  .venv\Scripts\activate
+pip install --upgrade pip
+pip install ".[ffmpeg]"
 ```
+
+Las comillas hacen falta en zsh (el intérprete de macOS), que si no se come
+los corchetes. Y `pip` tiene que ser razonablemente reciente: las versiones
+antiguas no entienden un proyecto sin `setup.py`.
 
 `ffmpeg` es lo que monta el aviso (campanilla, silencios, repeticiones,
 normalización). El extra `[ffmpeg]` instala una copia lista para usar; si
@@ -192,9 +207,9 @@ repetir = 2
 | Proveedor | Calidad | Coste | Internet | Cómo se activa |
 |---|---|---|---|---|
 | `edge` *(por defecto)* | muy buena | gratis | sí | ya viene instalado |
-| `openai` | excelente, admite instrucciones de estilo | de pago | sí | `pip install -e .[openai]` + `OPENAI_API_KEY` |
-| `elevenlabs` | la mejor | de pago | sí | `pip install -e .[elevenlabs]` + `ELEVENLABS_API_KEY` |
-| `piper` | buena | gratis | **no** | `pip install -e .[piper]` + un modelo `.onnx` |
+| `openai` | excelente, admite instrucciones de estilo | de pago | sí | `pip install ".[openai]"` + `OPENAI_API_KEY` |
+| `elevenlabs` | la mejor | de pago | sí | `pip install ".[elevenlabs]"` + `ELEVENLABS_API_KEY` |
+| `piper` | buena | gratis | **no** | `pip install ".[piper]"` + un modelo `.onnx` |
 
 ```bash
 export OPENAI_API_KEY="..."
@@ -264,7 +279,7 @@ con palabras («quince» en vez de «15»).
 ## Desarrollo
 
 ```bash
-pip install -e .[dev,ffmpeg]
+pip install -e ".[dev,ffmpeg]"
 pytest
 ```
 
