@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Voceo — avisos del centro comercial</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='estilo.css') }}">
+</head>
+<body>
+<header>
+  <h1>Voceo</h1>
+  <p>Genera los avisos de megafonía en MP3 y descárgalos.</p>
+</header>
+
+<main>
+  {% if not hay_ffmpeg %}
+  <p class="alerta">
+    Este servidor no tiene <strong>ffmpeg</strong>: los avisos saldrán sin
+    campanilla, sin repeticiones y sin normalizar el volumen.
+  </p>
+  {% endif %}
+
+  <nav class="pestanas">
+    <button class="pestana activa" data-panel="panel-uno">Un aviso</button>
+    <button class="pestana" data-panel="panel-lote">Varios (CSV)</button>
+  </nav>
+
+  <!-- ------------------------------ un aviso ------------------------- -->
+  <section id="panel-uno" class="panel">
+    <label for="plantilla">Plantilla</label>
+    <select id="plantilla">
+      <option value="">— Escribir el texto a mano —</option>
+      {% for p in plantillas %}
+      <option value="{{ p.nombre }}">{{ p.nombre }} — {{ p.descripcion }}</option>
+      {% endfor %}
+    </select>
+
+    <div id="campos-plantilla" class="campos oculto"></div>
+
+    <div id="zona-texto">
+      <label for="texto">Texto del aviso</label>
+      <textarea id="texto" rows="5"
+        placeholder="Atención, señores visitantes. El centro comercial cerrará en quince minutos."></textarea>
+      <p class="pista">
+        Puedes usar <code>[pausa]</code> para un silencio y
+        <code>[deletrear:ABC-123]</code> para que se lea letra a letra.
+      </p>
+    </div>
+
+    <label for="archivo">Nombre del archivo <span class="opcional">(opcional)</span></label>
+    <input id="archivo" type="text" placeholder="cierre-15-minutos">
+
+    {% include "_ajustes.html" %}
+
+    <div class="botones">
+      <button id="btn-previsualizar" class="secundario">Ver el texto final</button>
+      <button id="btn-generar" class="principal">Generar audio</button>
+    </div>
+
+    <div id="previsualizacion" class="resultado oculto"></div>
+
+    <div id="resultado" class="resultado oculto">
+      <audio id="reproductor" controls></audio>
+      <div class="fila-resultado">
+        <span id="detalle-resultado"></span>
+        <a id="descargar" class="principal" download>Descargar MP3</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ------------------------------ lote ------------------------------ -->
+  <section id="panel-lote" class="panel oculto">
+    <p class="pista">
+      Prepara la lista en una hoja de cálculo y expórtala a CSV. Columnas:
+      <code>archivo</code>, <code>texto</code> o <code>plantilla</code>, y una
+      columna por cada campo de la plantilla. Se devuelve un ZIP con todos los
+      MP3 y un <code>manifiesto.csv</code>.
+    </p>
+
+    <label for="csv">Archivo CSV</label>
+    <input id="csv" type="file" accept=".csv,text/csv">
+
+    {% include "_ajustes.html" %}
+
+    <div class="botones">
+      <button id="btn-lote" class="principal">Generar el ZIP</button>
+    </div>
+
+    <div id="resultado-lote" class="resultado oculto"></div>
+  </section>
+
+  <p id="error" class="error oculto"></p>
+  <p id="cargando" class="cargando oculto">Generando el audio…</p>
+</main>
+
+<footer>
+  Voceo {{ version }} · voz: {{ config.proveedor }} · los archivos no se guardan
+  en el servidor
+</footer>
+
+<script>
+  window.VOCEO = {
+    vozPorDefecto: {{ config.voz | tojson }},
+    plantillas: {{ plantillas | tojson }}
+  };
+</script>
+<script src="{{ url_for('static', filename='voceo.js') }}"></script>
+</body>
+</html>

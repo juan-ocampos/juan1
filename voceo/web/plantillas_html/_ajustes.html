@@ -1,0 +1,31 @@
+{# Controles de voz compartidos por las dos pestañas. #}
+<details class="ajustes">
+  <summary>Ajustes de voz</summary>
+
+  <label>Voz</label>
+  <select class="voz">
+    {% for v in voces %}
+    <option value="{{ v.id }}" {% if v.id == config.voz %}selected{% endif %}>{{ v.nombre }}</option>
+    {% endfor %}
+  </select>
+
+  <label>Velocidad</label>
+  <select class="velocidad">
+    <option value="-20%">Muy lenta</option>
+    <option value="-10%">Lenta</option>
+    <option value="-5%" selected>Normal (recomendada)</option>
+    <option value="+0%">Rápida</option>
+  </select>
+
+  <label>Repeticiones</label>
+  <select class="repetir">
+    <option value="1" selected>Una vez</option>
+    <option value="2">Dos veces</option>
+    <option value="3">Tres veces</option>
+  </select>
+
+  <label class="casilla">
+    <input type="checkbox" class="campanilla" {% if config.campanilla %}checked{% endif %}>
+    Campanilla de atención antes del mensaje
+  </label>
+</details>

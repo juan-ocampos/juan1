@@ -28,4 +28,12 @@ class ErrorDeAudio(VoceoError):
 
 
 class ErrorDePlantilla(VoceoError):
-    """La plantilla no existe o le faltan campos."""
+    """La plantilla no existe o le faltan campos.
+
+    `faltantes` lleva los campos que no se dieron, para que cada interfaz
+    explique a su manera cómo aportarlos.
+    """
+
+    def __init__(self, mensaje: str, faltantes: tuple[str, ...] = ()) -> None:
+        super().__init__(mensaje)
+        self.faltantes = tuple(faltantes)

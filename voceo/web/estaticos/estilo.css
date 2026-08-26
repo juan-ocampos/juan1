@@ -1,0 +1,217 @@
+/* Hoja de estilo de la aplicación web de Voceo.
+   Sin dependencias externas: el servidor puede vivir en una red cerrada. */
+
+:root {
+  --fondo: #f6f7f9;
+  --tarjeta: #ffffff;
+  --texto: #1c1f24;
+  --suave: #5d6570;
+  --borde: #d9dde3;
+  --acento: #1f6feb;
+  --acento-texto: #ffffff;
+  --error: #b3261e;
+  --aviso: #8a5a00;
+  --aviso-fondo: #fff6e0;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fondo: #14171c;
+    --tarjeta: #1c2027;
+    --texto: #e6e9ee;
+    --suave: #9aa3af;
+    --borde: #2c323b;
+    --acento: #4d8ffb;
+    --acento-texto: #0b1220;
+    --error: #ff7b72;
+    --aviso: #e3b341;
+    --aviso-fondo: #2b2412;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 0 1rem 3rem;
+  background: var(--fondo);
+  color: var(--texto);
+  font: 16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+header, main, footer { max-width: 46rem; margin: 0 auto; }
+
+header { padding: 2rem 0 1.25rem; }
+header h1 { margin: 0; font-size: 1.6rem; letter-spacing: -0.01em; }
+header p { margin: 0.25rem 0 0; color: var(--suave); }
+
+footer {
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--borde);
+  color: var(--suave);
+  font-size: 0.85rem;
+}
+
+/* --- pestañas --- */
+.pestanas { display: flex; gap: 0.5rem; margin-bottom: -1px; }
+
+.pestana {
+  padding: 0.6rem 1rem;
+  border: 1px solid var(--borde);
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+  background: transparent;
+  color: var(--suave);
+  font: inherit;
+  cursor: pointer;
+}
+
+.pestana.activa {
+  background: var(--tarjeta);
+  color: var(--texto);
+  font-weight: 600;
+}
+
+/* --- panel --- */
+.panel {
+  background: var(--tarjeta);
+  border: 1px solid var(--borde);
+  border-radius: 0 10px 10px 10px;
+  padding: 1.5rem;
+}
+
+label {
+  display: block;
+  margin: 1rem 0 0.35rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+label:first-child { margin-top: 0; }
+
+.opcional { font-weight: 400; color: var(--suave); }
+
+input[type="text"], textarea, select {
+  width: 100%;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  background: var(--fondo);
+  color: var(--texto);
+  font: inherit;
+}
+
+textarea { resize: vertical; }
+
+input[type="file"] { width: 100%; font: inherit; color: var(--suave); }
+
+input:focus, textarea:focus, select:focus {
+  outline: 2px solid var(--acento);
+  outline-offset: 1px;
+}
+
+.casilla {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 400;
+}
+
+.casilla input { width: auto; }
+
+.pista { margin: 0.5rem 0 0; color: var(--suave); font-size: 0.85rem; }
+
+code {
+  padding: 0.1rem 0.3rem;
+  border-radius: 4px;
+  background: var(--fondo);
+  border: 1px solid var(--borde);
+  font-size: 0.85em;
+}
+
+/* --- campos de la plantilla --- */
+.campos {
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px dashed var(--borde);
+  border-radius: 8px;
+}
+
+.campos .descripcion { margin: 0 0 0.5rem; color: var(--suave); font-size: 0.9rem; }
+
+/* --- ajustes plegables --- */
+.ajustes {
+  margin-top: 1.5rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+}
+
+.ajustes summary { cursor: pointer; font-weight: 600; font-size: 0.9rem; }
+.ajustes[open] summary { margin-bottom: 0.5rem; }
+
+/* --- botones --- */
+.botones { display: flex; gap: 0.75rem; margin-top: 1.5rem; flex-wrap: wrap; }
+
+button, .principal {
+  padding: 0.65rem 1.2rem;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.principal { background: var(--acento); color: var(--acento-texto); }
+.secundario { background: transparent; color: var(--texto); border-color: var(--borde); }
+
+button:disabled { opacity: 0.5; cursor: progress; }
+
+/* --- resultados --- */
+.resultado {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  background: var(--fondo);
+}
+
+.resultado audio { width: 100%; }
+
+.fila-resultado {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.fila-resultado span { color: var(--suave); font-size: 0.9rem; }
+
+.texto-final { margin: 0; white-space: pre-wrap; }
+
+.error {
+  margin-top: 1.5rem;
+  padding: 0.9rem 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--error);
+  color: var(--error);
+}
+
+.alerta {
+  padding: 0.9rem 1rem;
+  margin-bottom: 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--aviso);
+  background: var(--aviso-fondo);
+  color: var(--aviso);
+  font-size: 0.9rem;
+}
+
+.cargando { margin-top: 1.5rem; color: var(--suave); }
+
+.oculto { display: none; }

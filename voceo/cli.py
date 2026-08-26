@@ -12,7 +12,7 @@ from voceo import plantillas as modulo_plantillas
 from voceo import lote as modulo_lote
 from voceo import proveedores
 from voceo.config import Config
-from voceo.errores import VoceoError
+from voceo.errores import ErrorDePlantilla, VoceoError
 
 EPILOGO = """\
 Ejemplos:
@@ -21,6 +21,7 @@ Ejemplos:
   voceo plantilla vehiculo --campo placas=ABC-123 --campo motivo="dejó las luces encendidas"
   voceo lote ejemplos/avisos_del_dia.csv -d audio/hoy
   voceo voces --buscar MX
+  voceo web
   voceo doctor
 
 Nota: los valores negativos necesitan «=» para que no se confundan con una
@@ -153,7 +154,13 @@ def _orden_plantilla(args: argparse.Namespace) -> int:
         config = modulo_config.aplicar(
             _config_base(args), plantilla.ajustes, f"plantilla {plantilla.nombre}"
         ).con(**_opciones_cli(args))
-    contenido = plantilla.rellenar(valores)
+    try:
+        contenido = plantilla.rellenar(valores)
+    except ErrorDePlantilla as exc:
+        if not exc.faltantes:
+            raise
+        ejemplo = " ".join(f"--campo {campo}=..." for campo in exc.faltantes)
+        raise ErrorDePlantilla(f"{exc}\n  Añádelos así:  {ejemplo}") from exc
     final = generador.preparar_texto(contenido, config)
     if args.simular:
         _escribir(final)
@@ -262,6 +269,30 @@ def _orden_campanilla(args: argparse.Namespace) -> int:
     destino = Path(args.salida or "campanilla.wav")
     audio.generar_campanilla(destino)
     _escribir(f"✓ {destino}  (úsala con  campanilla_archivo = \"{destino}\"  en voceo.toml)")
+    return 0
+
+
+def _orden_web(args: argparse.Namespace) -> int:
+    """Levanta la aplicación web en este equipo."""
+    try:
+        from voceo.web import crear_app
+    except ImportError as exc:
+        raise VoceoError(
+            "Falta la dependencia «flask» para la aplicación web:\n"
+            "    pip install \".[web]\""
+        ) from exc
+
+    config = _construir_config(args)
+    app = crear_app(config)
+    anfitrion = "0.0.0.0" if args.publico else "127.0.0.1"  # noqa: S104
+    _escribir(f"Voceo web en  http://localhost:{args.puerto}")
+    if args.publico:
+        _escribir("Accesible desde la red local.")
+    if not os.environ.get("VOCEO_CLAVE"):
+        _escribir("Sin contraseña. Para exigir una:  export VOCEO_CLAVE=\"...\"")
+    _escribir("Para un servidor de verdad usa gunicorn (ver el README).")
+    _escribir("Ctrl+C para parar.")
+    app.run(host=anfitrion, port=args.puerto)
     return 0
 
 
@@ -379,6 +410,18 @@ def construir_parser() -> argparse.ArgumentParser:
     )
     campanilla.add_argument("-o", "--salida", metavar="ARCHIVO.wav")
     campanilla.set_defaults(funcion=_orden_campanilla)
+
+    web = ordenes.add_parser(
+        "web", help="levanta la aplicación web en este equipo",
+        description="Abre la página desde la que se generan los avisos con el "
+                    "navegador. Pensada para pruebas locales; en un servidor, "
+                    "usa gunicorn.",
+    )
+    web.add_argument("--puerto", type=int, default=8080, help="puerto (8080)")
+    web.add_argument("--publico", action="store_true",
+                     help="permitir el acceso desde otros equipos de la red")
+    _opciones_comunes(web)
+    web.set_defaults(funcion=_orden_web)
 
     doctor = ordenes.add_parser(
         "doctor", help="comprueba la instalación y la configuración",

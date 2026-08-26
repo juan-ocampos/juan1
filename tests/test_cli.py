@@ -187,3 +187,10 @@ def test_una_tuberia_cerrada_no_revienta(con_config, monkeypatch):
 
     assert main(["plantillas"]) == 0
     assert desviada, "la salida debería redirigirse al vacío"
+
+
+def test_la_terminal_explica_como_dar_los_campos_que_faltan(con_config, capsys):
+    assert main(["plantilla", "llamado_persona"]) == 1
+    error = capsys.readouterr().err
+    assert "Faltan datos" in error
+    assert "--campo nombre=" in error

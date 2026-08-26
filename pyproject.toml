@@ -32,9 +32,11 @@ dependencies = [
 openai = ["openai>=1.40"]
 elevenlabs = ["elevenlabs>=1.0"]
 piper = ["piper-tts>=1.2"]
+# Aplicación web
+web = ["flask>=3.0", "gunicorn>=21.2"]
 # ffmpeg empaquetado, para no tener que instalarlo a mano (sobre todo en Windows)
 ffmpeg = ["imageio-ffmpeg>=0.4.9"]
-dev = ["pytest>=8.0"]
+dev = ["pytest>=8.0", "flask>=3.0"]
 
 [project.scripts]
 voceo = "voceo.cli:main"
@@ -43,10 +45,14 @@ voceo = "voceo.cli:main"
 Repositorio = "https://github.com/juan-ocampos/juan1"
 
 [tool.setuptools]
-packages = ["voceo", "voceo.proveedores"]
+packages = ["voceo", "voceo.proveedores", "voceo.web"]
 
 [tool.setuptools.package-data]
-voceo = ["datos/*.toml"]
+voceo = [
+    "datos/*.toml",
+    "web/plantillas_html/*.html",
+    "web/estaticos/*",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

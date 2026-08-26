@@ -57,10 +57,12 @@ class Plantilla:
 
         faltantes = sorted(set(self.campos) - set(completos))
         if faltantes:
-            ejemplo = " ".join(f"--campo {c}=..." for c in faltantes)
+            # El mensaje lo leen tanto la terminal como la web: sin jerga de
+            # línea de órdenes.
             raise ErrorDePlantilla(
-                f"Faltan campos de la plantilla «{self.nombre}»: "
-                f"{', '.join(faltantes)}.\n  Añádelos así:  {ejemplo}"
+                f"Faltan datos de la plantilla «{self.nombre}»: "
+                f"{', '.join(faltantes)}.",
+                faltantes=tuple(faltantes),
             )
 
         for campo in self.deletrear:

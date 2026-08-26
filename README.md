@@ -18,6 +18,8 @@ voceo generar "Atención, señores visitantes. El centro comercial cierra en qui
 - **Producción pensada para megafonía**: «din-don» de atención, mensaje repetido,
   volumen normalizado y MP3 mono, que es lo que esperan los amplificadores.
 - **Cuatro motores de voz** intercambiables, uno de ellos sin internet.
+- **Aplicación web opcional**, para que el personal genere sus avisos desde el
+  navegador sin instalar nada.
 
 ---
 
@@ -251,10 +253,84 @@ voceo campanilla -o campanilla.wav
 | `voceo lote CSV` | generar todos los avisos de un CSV |
 | `voceo voces` | ver las voces del proveedor |
 | `voceo campanilla` | generar el archivo de la campanilla |
+| `voceo web` | levantar la aplicación web en este equipo |
 | `voceo doctor` | revisar instalación, ffmpeg, plantillas y proveedores |
 
 Todas admiten `--simular` (donde tiene sentido) para ver el texto final sin
 generar audio.
+
+---
+
+## Aplicación web
+
+Para que el personal del centro comercial genere sus propios avisos sin
+instalar nada y sin depender de un ordenador concreto, hay una página web con
+lo mismo que la terminal: escribir el aviso o elegir una plantilla, escucharlo
+y descargar el MP3.
+
+```bash
+pip install ".[web]"
+export VOCEO_CLAVE="la-contraseña-del-centro"   # opcional pero recomendable
+voceo web
+```
+
+Y se abre <http://localhost:8080>. Con `--publico` queda accesible desde los
+demás equipos de la red local.
+
+El servidor **no guarda nada**: genera el audio, lo entrega y lo descarta. No
+hay base de datos ni carpeta de archivos que vigilar. Y no reproduce nada: los
+MP3 se descargan y se copian al equipo de megafonía, que sigue sin necesitar
+internet.
+
+La página tiene dos pestañas: **Un aviso** (uno suelto, con reproductor para
+escucharlo antes de descargar) y **Varios (CSV)** (sube el CSV y baja un ZIP
+con todos los MP3 y el manifiesto).
+
+### Ponerla en un servidor
+
+La imagen de Docker lleva ffmpeg dentro y arranca con gunicorn:
+
+```bash
+docker build -t voceo .
+docker run -p 8080:8080 -e VOCEO_CLAVE="la-contraseña" voceo
+```
+
+### En Google Cloud Run
+
+Es el sitio natural: se apaga solo cuando nadie lo usa, así que con este
+volumen de uso el coste es prácticamente cero.
+
+```bash
+gcloud config set project TU-PROYECTO
+gcloud run deploy voceo \
+  --source . \
+  --region us-central1 \
+  --allow-unauthenticated \
+  --set-env-vars "VOCEO_CLAVE=la-contraseña-del-centro" \
+  --memory 512Mi \
+  --timeout 300
+```
+
+`gcloud` compila el `Dockerfile`, sube la imagen y devuelve la URL. La primera
+vez pedirá permiso para habilitar Cloud Build y Artifact Registry.
+
+`--allow-unauthenticated` deja la URL abierta a internet, y quien protege la
+página es `VOCEO_CLAVE` (una contraseña compartida, que el navegador pide al
+entrar). Si el personal tiene cuentas de Google de la organización, la
+alternativa más estricta es `--no-allow-unauthenticated` y dar el rol
+*Cloud Run Invoker* a cada uno.
+
+### Ajustes por entorno
+
+| Variable | Para qué |
+|---|---|
+| `VOCEO_CLAVE` | contraseña de acceso; sin ella la página queda abierta |
+| `VOCEO_CONFIG` | ruta a un `voceo.toml` con la voz y los ajustes por defecto |
+| `OPENAI_API_KEY`, `ELEVENLABS_API_KEY` | si el servidor usa esos motores |
+| `PORT` | puerto donde escucha (Cloud Run lo pone solo) |
+
+Topes de seguridad: 5.000 caracteres por aviso, 200 filas por CSV y 2 MB de
+subida, para que un descuido no dispare el gasto ni el tiempo de espera.
 
 ---
 
@@ -298,6 +374,7 @@ voceo/
   audio.py          campanilla, silencios, repeticiones y MP3 (ffmpeg)
   lote.py           generación desde CSV
   proveedores/      edge, openai, elevenlabs, piper
+  web/              aplicación web (Flask) y su página
   datos/            plantillas incluidas
   lector_toml.py    lectura de TOML compatible con Python 3.10
 ```

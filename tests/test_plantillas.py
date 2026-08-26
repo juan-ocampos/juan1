@@ -97,3 +97,14 @@ def test_archivo_de_plantillas_inexistente(tmp_path):
 def test_los_ajustes_de_la_plantilla_se_leen():
     evacuacion = modulo.obtener("evacuacion")
     assert evacuacion.ajustes["repetir"] == 2
+
+
+def test_el_error_lleva_los_campos_que_faltan(tmp_path):
+    ruta = _archivo(
+        tmp_path, '[aviso]\ntexto = "{uno} {dos}"\ncampos = ["uno", "dos"]\n'
+    )
+    with pytest.raises(ErrorDePlantilla) as fallo:
+        modulo.obtener("aviso", ruta).rellenar({"uno": "a"})
+    assert fallo.value.faltantes == ("dos",)
+    # El mensaje base no habla de la línea de órdenes: también lo lee la web.
+    assert "--campo" not in str(fallo.value)
