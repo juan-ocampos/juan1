@@ -236,3 +236,59 @@ def test_con_la_clave_incorrecta_no(cliente_protegido):
 
 def test_la_salud_no_pide_clave(cliente_protegido):
     assert cliente_protegido.get("/salud").status_code == 200
+
+
+@pytest.fixture
+def cliente_con_acentos(proveedor_falso, config_basica, monkeypatch):
+    """Una contraseña en español, con eñe y tilde."""
+    monkeypatch.setenv("VOCEO_CLAVE", "la-contraseña-del-señor")
+    app = crear_app(config_basica)
+    app.config["TESTING"] = True
+    return app.test_client()
+
+
+def test_una_clave_con_acentos_funciona(cliente_con_acentos):
+    respuesta = cliente_con_acentos.get(
+        "/", headers=_basica("voceo", "la-contraseña-del-señor")
+    )
+    assert respuesta.status_code == 200
+
+
+def test_una_clave_con_acentos_tambien_rechaza(cliente_con_acentos):
+    respuesta = cliente_con_acentos.get("/", headers=_basica("voceo", "otra-cosa"))
+    assert respuesta.status_code == 401
+
+
+def test_sin_cabecera_de_autorizacion(cliente_con_acentos):
+    assert cliente_con_acentos.get("/").status_code == 401
+
+
+# --- valores absurdos del formulario -------------------------------------
+def test_unas_repeticiones_que_no_son_numero(cliente):
+    respuesta = cliente.post("/generar", json={"texto": "Hola", "repetir": "muchas"})
+    assert respuesta.status_code == 400
+    assert "repeticiones" in _json(respuesta)["error"]
+
+
+def test_una_campanilla_que_no_es_si_ni_no(cliente):
+    respuesta = cliente.post("/generar", json={"texto": "Hola", "campanilla": "quizá"})
+    assert respuesta.status_code == 400
+    assert "campanilla" in _json(respuesta)["error"]
+
+
+def test_un_fallo_inesperado_devuelve_json_no_una_pagina_de_error(cliente, monkeypatch):
+    import voceo.web.app as web
+
+    def reventar(*args, **extra):
+        raise RuntimeError("algo muy raro")
+
+    monkeypatch.setattr(web.generador, "generar", reventar)
+    respuesta = cliente.post("/generar", json={"texto": "Hola"})
+    assert respuesta.status_code == 500
+    assert respuesta.is_json
+    # El detalle interno no se filtra al navegador.
+    assert "algo muy raro" not in _json(respuesta)["error"]
+
+
+def test_una_ruta_que_no_existe_sigue_siendo_404(cliente):
+    assert cliente.get("/inventada").status_code == 404

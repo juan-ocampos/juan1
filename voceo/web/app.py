@@ -24,6 +24,7 @@ from flask import (
     request,
     send_file,
 )
+from werkzeug.exceptions import HTTPException
 
 from voceo import __version__, audio, generador, lote as modulo_lote
 from voceo import config as modulo_config
@@ -64,15 +65,27 @@ def _sin_autorizar() -> Response:
 
 
 def _ajustes_del_formulario(config: Config, datos: dict[str, Any]) -> Config:
-    """Aplica a la configuración lo que el usuario eligió en la página."""
+    """Aplica a la configuración lo que el usuario eligió en la página.
+
+    Todo lo que llega del navegador es texto sin garantías, así que un valor
+    absurdo se convierte en un error explicado, nunca en un fallo del servidor.
+    """
     cambios: dict[str, Any] = {}
     if datos.get("voz"):
         cambios["voz"] = str(datos["voz"])
     if datos.get("velocidad") not in (None, ""):
         cambios["velocidad"] = str(datos["velocidad"])
     if datos.get("repetir") not in (None, ""):
-        cambios["repetir"] = max(1, min(int(datos["repetir"]), 3))
-    cambios["campanilla"] = modulo_config.a_bool(datos.get("campanilla", False))
+        try:
+            cambios["repetir"] = max(1, min(int(datos["repetir"]), 3))
+        except (TypeError, ValueError):
+            raise VoceoError(
+                f"«{datos['repetir']}» no es un número de repeticiones válido."
+            ) from None
+    try:
+        cambios["campanilla"] = modulo_config.a_bool(datos.get("campanilla", False))
+    except ValueError:
+        raise VoceoError("El valor de la campanilla debe ser sí o no.") from None
     return config.con(**cambios)
 
 
@@ -123,7 +136,10 @@ def crear_app(config: Config | None = None) -> Flask:
         if not clave or request.path == "/salud":
             return None
         credenciales = request.authorization
-        if credenciales and secrets.compare_digest(credenciales.password or "", clave):
+        # Se comparan bytes: `compare_digest` rechaza las cadenas con acentos
+        # o eñes, y una contraseña en español los lleva a menudo.
+        recibida = (credenciales.password or "") if credenciales else ""
+        if secrets.compare_digest(recibida.encode("utf-8"), clave.encode("utf-8")):
             return None
         return _sin_autorizar()
 
@@ -134,6 +150,26 @@ def crear_app(config: Config | None = None) -> Flask:
     @app.errorhandler(413)
     def _archivo_enorme(_):
         return jsonify({"error": "El archivo es demasiado grande (máximo 2 MB)."}), 413
+
+    @app.errorhandler(Exception)
+    def _error_inesperado(exc: Exception):
+        """Último recinto: nada de páginas de error en crudo.
+
+        El detalle va al registro del servidor, no al navegador, y el usuario
+        recibe un mensaje que puede repetir a quien administre el servicio.
+        """
+        if isinstance(exc, HTTPException):
+            return exc
+        app.logger.exception("Fallo inesperado atendiendo %s", request.path)
+        return (
+            jsonify(
+                {
+                    "error": "Error interno del servidor. Vuelve a intentarlo; "
+                    "si sigue fallando, revisa el registro del servicio."
+                }
+            ),
+            500,
+        )
 
     # --- páginas ---------------------------------------------------------
     @app.get("/")
