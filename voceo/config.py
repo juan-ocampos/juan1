@@ -15,7 +15,30 @@ from voceo.rutas import PLANTILLAS_POR_DEFECTO
 # Nombre del archivo de configuración que se busca en el directorio actual.
 ARCHIVO_CONFIG = "voceo.toml"
 
+#: Perfiles que trae el programa de fábrica. Un perfil con el mismo nombre en
+#: el `voceo.toml` del usuario tiene preferencia sobre estos.
+PERFILES_INTEGRADOS: dict[str, dict[str, Any]] = {
+    # Equipos de voceo de estacionamientos del proyecto Echo: exigen MP3 mono
+    # de 44.100 Hz a 96 kbit/s CBR que empiece directamente en el audio, sin
+    # ID3 ni cabecera Xing por delante.
+    "echo": {
+        "bitrate": "96k",
+        "frecuencia": 44100,
+        "canales": 1,
+        "id3": False,
+        "xing": False,
+        "compresor": True,
+        "normalizar_volumen": True,
+    },
+}
+
 # Ubicaciones donde se busca la configuración, en orden de prioridad.
+#: Para qué sirve cada perfil integrado, de cara a la ayuda y a la web.
+DESCRIPCIONES_PERFILES: dict[str, str] = {
+    "echo": "Equipos de estacionamiento Echo — MP3 mono 96 kbit/s, sin cabeceras",
+}
+
+
 def rutas_de_busqueda() -> list[Path]:
     return [
         Path.cwd() / ARCHIVO_CONFIG,
@@ -66,6 +89,9 @@ class Config:
     bitrate: str = "160k"
     frecuencia: int = 44100
     canales: int = 1         # mono: es lo habitual en megafonía
+    id3: bool = True         # etiquetas ID3; algunos reproductores no las admiten
+    xing: bool = True        # cabecera Xing/Info al principio del MP3
+    compresor: bool = False  # compresión + limitador, para entornos ruidosos
 
     # --- Producción del aviso ---
     campanilla: bool = True
@@ -187,7 +213,8 @@ def cargar(ruta: Path | None = None, perfil: str | None = None) -> Config:
         config = aplicar(config, datos, str(archivo))
 
     if perfil:
-        perfiles = datos.get("perfiles", {})
+        # El perfil del usuario manda sobre el integrado del mismo nombre.
+        perfiles = {**PERFILES_INTEGRADOS, **datos.get("perfiles", {})}
         if perfil not in perfiles:
             disponibles = ", ".join(sorted(perfiles)) or "ninguno"
             raise ErrorDeConfiguracion(
@@ -199,15 +226,16 @@ def cargar(ruta: Path | None = None, perfil: str | None = None) -> Config:
 
 
 def perfiles_disponibles(ruta: Path | None = None) -> list[str]:
-    """Lista los nombres de perfil definidos en el archivo de configuración."""
+    """Perfiles utilizables: los integrados más los del archivo de configuración."""
+    nombres = set(PERFILES_INTEGRADOS)
     archivo = ruta or next((r for r in rutas_de_busqueda() if r.is_file()), None)
-    if archivo is None or not archivo.is_file():
-        return []
-    try:
-        datos = leer_toml(archivo.read_text(encoding="utf-8"))
-    except ErrorTOML:
-        return []
-    return sorted(datos.get("perfiles", {}))
+    if archivo is not None and archivo.is_file():
+        try:
+            datos = leer_toml(archivo.read_text(encoding="utf-8"))
+        except ErrorTOML:
+            datos = {}
+        nombres |= set(datos.get("perfiles", {}))
+    return sorted(nombres)
 
 
 def clave_api(variable: str, proveedor: str) -> str:

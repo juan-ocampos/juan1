@@ -21,6 +21,8 @@ import subprocess
 import wave
 from pathlib import Path
 
+from dataclasses import dataclass, field
+
 from voceo.config import Config
 from voceo.errores import ErrorDeAudio
 
@@ -32,6 +34,23 @@ CAMPANILLA_POR_DEFECTO: tuple[tuple[float, float], ...] = (
 
 #: Dónde se guarda la campanilla generada para no recrearla en cada aviso.
 CACHE = Path.home() / ".cache" / "voceo"
+
+#: Compresión y limitador para que la voz se imponga al ruido de fondo
+#: (motores, gente, megafonía de estacionamiento). Sube el cuerpo de la
+#: locución y sujeta los picos justo por debajo del techo digital.
+FILTRO_COMPRESOR = (
+    "acompressor=threshold=-24dB:ratio=4:attack=5:release=120:makeup=6,"
+    "alimiter=limit=-1.0dB"
+)
+
+#: Tamaño de la información lateral de una trama MPEG, del que depende dónde
+#: se colocaría la cabecera Xing/Info: (¿es MPEG-1?, ¿es mono?) -> bytes.
+_INFORMACION_LATERAL = {
+    (True, True): 17,    # MPEG-1 mono
+    (True, False): 32,   # MPEG-1 estéreo
+    (False, True): 9,    # MPEG-2 / 2.5 mono
+    (False, False): 17,  # MPEG-2 / 2.5 estéreo
+}
 
 
 def ruta_ffmpeg() -> str | None:
@@ -156,6 +175,106 @@ def duracion(ruta: Path) -> float | None:
     )
 
 
+@dataclass
+class Comprobacion:
+    """Resultado de revisar un MP3 ya generado."""
+
+    ruta: Path
+    valido: bool = True
+    problemas: list[str] = field(default_factory=list)
+    cabecera: bytes = b""
+    tamano: int = 0
+    duracion: float | None = None
+    kbps: float | None = None
+
+    def __str__(self) -> str:
+        estado = "correcto" if self.valido else "INCORRECTO"
+        detalle = f"  ({'; '.join(self.problemas)})" if self.problemas else ""
+        return f"{self.ruta.name}: {estado}{detalle}"
+
+
+def comprobar_mp3(ruta: Path, *, kbps_esperado: int | None = None) -> Comprobacion:
+    """Revisa que un MP3 empiece directamente en el audio.
+
+    Hay reproductores empotrados —los equipos de voceo de estacionamiento del
+    proyecto Echo, por ejemplo— que no saltan las cabeceras: esperan que el
+    primer byte sea ya el sincronismo de una trama MPEG. Si el archivo empieza
+    por «ID3», el decodificador se pone a buscar el sincronismo byte a byte.
+
+    Comprueba, en este orden: que no haya etiqueta ID3 delante, que los
+    primeros bytes sean un sincronismo válido, que no haya cabecera Xing/Info,
+    y —si se indica `kbps_esperado`— que el tamaño cuadre con ese bitrate.
+    """
+    ruta = Path(ruta)
+    resultado = Comprobacion(ruta=ruta)
+    if not ruta.is_file():
+        resultado.valido = False
+        resultado.problemas.append("el archivo no existe")
+        return resultado
+
+    datos = ruta.read_bytes()
+    resultado.tamano = len(datos)
+    resultado.cabecera = datos[:4]
+
+    if len(datos) < 4:
+        resultado.valido = False
+        resultado.problemas.append("el archivo está vacío o truncado")
+        return resultado
+
+    if datos[:3] == b"ID3":
+        resultado.valido = False
+        resultado.problemas.append("empieza con una etiqueta ID3")
+    elif datos[0] != 0xFF or (datos[1] & 0xE0) != 0xE0:
+        resultado.valido = False
+        resultado.problemas.append(
+            f"no empieza en una trama MPEG (primeros bytes: {datos[:2].hex(' ')})"
+        )
+
+    if _tiene_xing(datos):
+        resultado.valido = False
+        resultado.problemas.append("lleva cabecera Xing/Info")
+
+    resultado.duracion = duracion(ruta)
+    if resultado.duracion:
+        resultado.kbps = round(resultado.tamano * 8 / resultado.duracion / 1000, 1)
+        if kbps_esperado and resultado.kbps and resultado.duracion >= 1.0:
+            # ±20 %: el margen absorbe la última trama y el redondeo de la duración.
+            if not 0.8 * kbps_esperado <= resultado.kbps <= 1.2 * kbps_esperado:
+                resultado.valido = False
+                resultado.problemas.append(
+                    f"el tamaño corresponde a unos {resultado.kbps:.0f} kbit/s "
+                    f"y se esperaban {kbps_esperado}"
+                )
+    return resultado
+
+
+def _tiene_xing(datos: bytes) -> bool:
+    """¿La primera trama es en realidad una cabecera Xing/Info?
+
+    Se mira el desplazamiento exacto donde iría la etiqueta —justo detrás de
+    la información lateral, cuyo tamaño depende de la versión de MPEG y de si
+    es mono o estéreo—, en vez de buscar la cadena por el archivo: los datos
+    auxiliares de una trama normal llevan texto (LAME escribe ahí su versión)
+    y una búsqueda a ciegas daría falsos positivos.
+    """
+    if len(datos) < 8 or datos[0] != 0xFF or (datos[1] & 0xE0) != 0xE0:
+        return False
+    es_mpeg1 = (datos[1] >> 3) & 0x03 == 0x03
+    es_mono = (datos[3] >> 6) & 0x03 == 0x03
+    desplazamiento = 4 + _INFORMACION_LATERAL[(es_mpeg1, es_mono)]
+    return datos[desplazamiento : desplazamiento + 4] in (b"Xing", b"Info")
+
+
+def _kbps_de(bitrate: str) -> int | None:
+    """Convierte «96k» en 96. Devuelve None si el formato no se reconoce."""
+    texto = str(bitrate).strip().lower()
+    coincidencia = re.fullmatch(r"(\d+)\s*k?(?:bit/s|bps|b)?", texto)
+    if not coincidencia:
+        return None
+    valor = int(coincidencia.group(1))
+    return valor // 1000 if valor >= 1000 else valor
+
+
 def _disposicion(canales: int) -> str:
     return "mono" if canales <= 1 else "stereo"
 
@@ -185,6 +304,11 @@ def necesita_ffmpeg(config: Config, fragmentos: int, formato_origen: str) -> boo
         or config.silencio_inicial > 0
         or config.silencio_final > 0
         or config.normalizar_volumen
+        or config.compresor
+        # Sin ID3 o sin Xing hay que reescribir el MP3 sí o sí: el que entrega
+        # el proveedor viene con sus propias cabeceras.
+        or not config.id3
+        or not config.xing
     )
 
 
@@ -259,23 +383,32 @@ def masterizar(
     cadena_final = "".join(f"[{e}]" for e in secuencia)
     filtros.append(f"{cadena_final}concat=n={len(secuencia)}:v=0:a=1[mezcla]")
 
+    etiqueta_salida = "mezcla"
     if config.normalizar_volumen:
         # loudnorm deja todos los avisos a la misma sonoridad percibida.
         filtros.append(
-            f"[mezcla]loudnorm=I=-16:TP=-1.5:LRA=11,aresample={config.frecuencia}[salida]"
+            f"[{etiqueta_salida}]loudnorm=I=-16:TP=-1.5:LRA=11,"
+            f"aresample={config.frecuencia}[normalizado]"
         )
-        etiqueta_salida = "salida"
-    else:
-        etiqueta_salida = "mezcla"
+        etiqueta_salida = "normalizado"
+    if config.compresor:
+        filtros.append(f"[{etiqueta_salida}]{FILTRO_COMPRESOR}[comprimido]")
+        etiqueta_salida = "comprimido"
 
     orden = [programa, "-y", "-hide_banner", "-loglevel", "error"]
     orden += entradas
     orden += ["-filter_complex", ";".join(filtros), "-map", f"[{etiqueta_salida}]"]
-    for clave, valor in (metadatos or {}).items():
-        orden += ["-metadata", f"{clave}={valor}"]
+    if config.id3:
+        for clave, valor in (metadatos or {}).items():
+            orden += ["-metadata", f"{clave}={valor}"]
+    else:
+        # El archivo debe empezar en el audio: ni ID3v2 delante ni ID3v1 detrás.
+        orden += ["-map_metadata", "-1", "-id3v2_version", "0", "-write_id3v1", "0"]
+    if not config.xing:
+        orden += ["-write_xing", "0"]
     orden += [
         "-c:a", "libmp3lame",
-        "-b:a", config.bitrate,
+        "-b:a", config.bitrate,   # bitrate fijo (CBR); -q:a daría VBR
         "-ar", str(config.frecuencia),
         "-ac", str(config.canales),
         str(destino),
@@ -285,6 +418,16 @@ def masterizar(
     if resultado.returncode != 0:
         detalle = resultado.stderr.decode("utf-8", "replace").strip()
         raise ErrorDeAudio(f"ffmpeg falló al montar el aviso:\n{detalle}")
+
+    if not config.id3 or not config.xing:
+        # Se pidió un MP3 que empiece en el audio: se comprueba antes de darlo
+        # por bueno, en vez de confiar en que ffmpeg hizo lo esperado.
+        revision = comprobar_mp3(destino, kbps_esperado=_kbps_de(config.bitrate))
+        if not revision.valido:
+            raise ErrorDeAudio(
+                "El MP3 generado no cumple el formato exigido: "
+                + "; ".join(revision.problemas)
+            )
     return destino
 
 

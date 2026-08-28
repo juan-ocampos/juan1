@@ -292,3 +292,50 @@ def test_un_fallo_inesperado_devuelve_json_no_una_pagina_de_error(cliente, monke
 
 def test_una_ruta_que_no_existe_sigue_siendo_404(cliente):
     assert cliente.get("/inventada").status_code == 404
+
+
+# --- formato de salida ---------------------------------------------------
+def test_el_selector_de_formato_esta_en_la_pagina(cliente):
+    html = cliente.get("/").data.decode()
+    assert 'class="perfil"' in html
+    assert "Echo" in html
+
+
+def test_el_formato_echo_se_aplica(cliente, monkeypatch):
+    import voceo.web.app as web
+
+    visto = {}
+    original = web.generador.generar
+
+    def espia(texto, destino, config, **extra):
+        visto["config"] = config
+        return original(texto, destino, config, **extra)
+
+    monkeypatch.setattr(web.generador, "generar", espia)
+    cliente.post("/generar", json={"texto": "Hola", "perfil": "echo"})
+    assert visto["config"].bitrate == "96k"
+    assert visto["config"].id3 is False
+    assert visto["config"].compresor is True
+
+
+def test_los_controles_mandan_sobre_el_formato(cliente, monkeypatch):
+    """Elegir «echo» fija el formato, pero la voz sigue siendo la del usuario."""
+    import voceo.web.app as web
+
+    visto = {}
+    original = web.generador.generar
+
+    def espia(texto, destino, config, **extra):
+        visto["config"] = config
+        return original(texto, destino, config, **extra)
+
+    monkeypatch.setattr(web.generador, "generar", espia)
+    cliente.post("/generar", json={"texto": "Hola", "perfil": "echo", "voz": "otra"})
+    assert visto["config"].voz == "otra"
+    assert visto["config"].bitrate == "96k"
+
+
+def test_un_formato_inventado_da_error(cliente):
+    respuesta = cliente.post("/generar", json={"texto": "Hola", "perfil": "marciano"})
+    assert respuesta.status_code == 400
+    assert "marciano" in _json(respuesta)["error"]

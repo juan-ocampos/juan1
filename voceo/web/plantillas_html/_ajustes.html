@@ -24,6 +24,14 @@
     <option value="3">Tres veces</option>
   </select>
 
+  <label>Formato de salida</label>
+  <select class="perfil">
+    <option value="">Estándar — MP3 {{ config.bitrate }}, con etiquetas</option>
+    {% for nombre, descripcion in perfiles.items() %}
+    <option value="{{ nombre }}">{{ descripcion }}</option>
+    {% endfor %}
+  </select>
+
   <label class="casilla">
     <input type="checkbox" class="campanilla" {% if config.campanilla %}checked{% endif %}>
     Campanilla de atención antes del mensaje

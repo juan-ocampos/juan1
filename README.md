@@ -253,11 +253,72 @@ voceo campanilla -o campanilla.wav
 | `voceo lote CSV` | generar todos los avisos de un CSV |
 | `voceo voces` | ver las voces del proveedor |
 | `voceo campanilla` | generar el archivo de la campanilla |
+| `voceo validar` | comprobar que unos MP3 cumplen el formato exigido |
 | `voceo web` | levantar la aplicación web en este equipo |
 | `voceo doctor` | revisar instalación, ffmpeg, plantillas y proveedores |
 
 Todas admiten `--simular` (donde tiene sentido) para ver el texto final sin
 generar audio.
+
+---
+
+## Formato de salida para reproductores exigentes
+
+Los reproductores empotrados no son todos iguales. Algunos —como los equipos
+de voceo de estacionamiento del proyecto **Echo**— no saben saltarse las
+cabeceras: esperan que el **primer byte del archivo sea ya audio**. Si el MP3
+empieza por `ID3`, el decodificador se pone a buscar el sincronismo byte a
+byte, con el resultado que uno se imagina.
+
+Para eso está el perfil `echo`, que viene de fábrica:
+
+```bash
+voceo lote avisos.csv --perfil echo -d salida/
+voceo validar salida/*.mp3 --kbps 96
+```
+
+Produce **MP3 mono, 44.100 Hz, 96 kbit/s CBR, sin ID3 y sin cabecera
+Xing/Info**, y añade una compresión con limitador para que la voz se imponga
+al ruido de motores.
+
+Los ajustes que lo componen se pueden usar sueltos:
+
+| Ajuste | Qué hace |
+|---|---|
+| `id3 = false` | no escribe etiquetas: el archivo empieza en la primera trama |
+| `xing = false` | quita la cabecera Xing/Info del principio |
+| `compresor = true` | añade `acompressor` + `alimiter` para entornos ruidosos |
+| `bitrate = "96k"` | bitrate **constante**; con `-q:a` saldría variable |
+
+### La comprobación
+
+Cuando se pide `id3 = false` o `xing = false`, el programa **revisa el archivo
+que acaba de escribir** antes de darlo por bueno, y falla si no cumple. Y se
+puede revisar cualquier MP3 a mano, venga de donde venga:
+
+```bash
+$ voceo validar audio/*.mp3 --kbps 96
+✓ cierre-15.mp3  96 kbit/s
+✗ viejo.mp3  98 kbit/s
+    empieza con una etiqueta ID3
+
+1 de 2 correctos.
+```
+
+Devuelve código de salida 1 si alguno falla, así que sirve para encadenarlo en
+un script.
+
+Comprueba tres cosas: que no haya `ID3` delante, que los dos primeros bytes
+sean un sincronismo MPEG válido, y que no haya cabecera Xing/Info —esta última
+mirando el desplazamiento exacto donde iría, porque LAME escribe su versión en
+los datos auxiliares de cada trama y buscar la cadena a ciegas daría falsos
+positivos. Con `--kbps` comprueba además que el tamaño cuadre con ese bitrate
+(unos 12 KB por segundo a 96 kbit/s).
+
+> Un apunte para quien venga de usar `lame` directamente: el ejecutable de LAME
+> siempre escribe la cabecera Info/Xing y no tiene forma de omitirla, así que
+> hay que limpiarla después. ffmpeg sí puede evitarla de entrada
+> (`-write_xing 0`), que es lo que hace este programa.
 
 ---
 
@@ -284,7 +345,8 @@ internet.
 
 La página tiene dos pestañas: **Un aviso** (uno suelto, con reproductor para
 escucharlo antes de descargar) y **Varios (CSV)** (sube el CSV y baja un ZIP
-con todos los MP3 y el manifiesto).
+con todos los MP3 y el manifiesto). En «Ajustes de voz» se elige también el
+**formato de salida**, incluido el de los equipos Echo.
 
 ### Ponerla en un servidor
 

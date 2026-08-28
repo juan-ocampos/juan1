@@ -194,3 +194,37 @@ def test_la_terminal_explica_como_dar_los_campos_que_faltan(con_config, capsys):
     error = capsys.readouterr().err
     assert "Faltan datos" in error
     assert "--campo nombre=" in error
+
+
+# --- validación del formato ----------------------------------------------
+def test_validar_acepta_un_mp3_correcto(tmp_path, capsys):
+    bueno = tmp_path / "bueno.mp3"
+    bueno.write_bytes(b"\xff\xfb\x70\xc4" + b"\x00" * 400)
+    assert main(["validar", str(bueno)]) == 0
+    assert "1 de 1 correctos" in capsys.readouterr().out
+
+
+def test_validar_rechaza_y_devuelve_codigo_1(tmp_path, capsys):
+    malo = tmp_path / "malo.mp3"
+    malo.write_bytes(b"ID3\x04\x00" + b"\x00" * 400)
+    assert main(["validar", str(malo)]) == 1
+    assert "ID3" in capsys.readouterr().out
+
+
+def test_validar_admite_comodines(tmp_path, capsys):
+    (tmp_path / "a.mp3").write_bytes(b"\xff\xfb\x70\xc4" + b"\x00" * 400)
+    (tmp_path / "b.mp3").write_bytes(b"ID3\x04\x00" + b"\x00" * 400)
+    assert main(["validar", str(tmp_path / "*.mp3")]) == 1
+    assert "1 de 2 correctos" in capsys.readouterr().out
+
+
+def test_validar_sin_archivos(tmp_path, capsys):
+    assert main(["validar", str(tmp_path / "*.mp3")]) == 1
+    assert "ningún archivo" in capsys.readouterr().err
+
+
+def test_el_perfil_echo_se_aplica_desde_la_cli(con_config, espia_config, tmp_path):
+    assert main(["generar", "Hola", "--perfil", "echo", "-o", str(tmp_path / "a.mp3")]) == 0
+    config = espia_config["config"]
+    assert config.bitrate == "96k"
+    assert config.id3 is False

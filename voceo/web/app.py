@@ -70,6 +70,14 @@ def _ajustes_del_formulario(config: Config, datos: dict[str, Any]) -> Config:
     Todo lo que llega del navegador es texto sin garantías, así que un valor
     absurdo se convierte en un error explicado, nunca en un fallo del servidor.
     """
+    perfil = str(datos.get("perfil", "")).strip()
+    if perfil:
+        if perfil not in modulo_config.PERFILES_INTEGRADOS:
+            raise VoceoError(f"El formato de salida «{perfil}» no existe.")
+        config = modulo_config.aplicar(
+            config, modulo_config.PERFILES_INTEGRADOS[perfil], f"perfil {perfil}"
+        )
+
     cambios: dict[str, Any] = {}
     if datos.get("voz"):
         cambios["voz"] = str(datos["voz"])
@@ -182,6 +190,7 @@ def crear_app(config: Config | None = None) -> Flask:
             config=actual,
             voces=VOCES_RECOMENDADAS,
             hay_ffmpeg=audio.ruta_ffmpeg() is not None,
+            perfiles=modulo_config.DESCRIPCIONES_PERFILES,
             plantillas=[
                 {
                     "nombre": p.nombre,

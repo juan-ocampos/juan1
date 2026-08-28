@@ -21,6 +21,8 @@ Ejemplos:
   voceo plantilla vehiculo --campo placas=ABC-123 --campo motivo="dejó las luces encendidas"
   voceo lote ejemplos/avisos_del_dia.csv -d audio/hoy
   voceo voces --buscar MX
+  voceo lote avisos.csv --perfil echo -d salida/   (formato para equipos Echo)
+  voceo validar salida/*.mp3 --kbps 96
   voceo web
   voceo doctor
 
@@ -272,6 +274,29 @@ def _orden_campanilla(args: argparse.Namespace) -> int:
     return 0
 
 
+def _orden_validar(args: argparse.Namespace) -> int:
+    """Revisa MP3 ya generados contra el formato que exigen los reproductores."""
+    rutas: list[Path] = []
+    for patron in args.archivos:
+        ruta = Path(patron)
+        rutas.extend(sorted(ruta.parent.glob(ruta.name)) if "*" in patron else [ruta])
+    if not rutas:
+        raise VoceoError("No se encontró ningún archivo que revisar.")
+
+    fallidos = 0
+    for ruta in rutas:
+        revision = audio.comprobar_mp3(ruta, kbps_esperado=args.kbps)
+        marca = "✓" if revision.valido else "✗"
+        detalle = f"  {revision.kbps:.0f} kbit/s" if revision.kbps else ""
+        _escribir(f"{marca} {ruta.name}{detalle}")
+        for problema in revision.problemas:
+            _escribir(f"    {problema}")
+        fallidos += not revision.valido
+
+    _escribir(f"\n{len(rutas) - fallidos} de {len(rutas)} correctos.")
+    return 1 if fallidos else 0
+
+
 def _orden_web(args: argparse.Namespace) -> int:
     """Levanta la aplicación web en este equipo."""
     try:
@@ -410,6 +435,17 @@ def construir_parser() -> argparse.ArgumentParser:
     )
     campanilla.add_argument("-o", "--salida", metavar="ARCHIVO.wav")
     campanilla.set_defaults(funcion=_orden_campanilla)
+
+    validar = ordenes.add_parser(
+        "validar", help="revisa que unos MP3 cumplan el formato exigido",
+        description="Comprueba que los MP3 empiecen directamente en el audio "
+                    "(sin ID3 ni cabecera Xing por delante) y que el bitrate "
+                    "cuadre. Para reproductores empotrados exigentes.",
+    )
+    validar.add_argument("archivos", nargs="+", metavar="ARCHIVO.mp3")
+    validar.add_argument("--kbps", type=int, default=None,
+                         help="bitrate esperado, p. ej. 96")
+    validar.set_defaults(funcion=_orden_validar)
 
     web = ordenes.add_parser(
         "web", help="levanta la aplicación web en este equipo",

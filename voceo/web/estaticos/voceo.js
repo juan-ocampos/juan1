@@ -36,6 +36,7 @@ function ajustesDe(panel) {
     velocidad: $(".velocidad", panel).value,
     repetir: $(".repetir", panel).value,
     campanilla: $(".campanilla", panel).checked,
+    perfil: $(".perfil", panel).value,
   };
 }
 

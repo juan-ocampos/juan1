@@ -17,6 +17,9 @@ salida = "audio"                # carpeta donde se guardan los MP3
 bitrate = "160k"
 frecuencia = 44100
 canales = 1                     # 1 = mono, lo normal en megafonía
+id3 = true                      # etiquetas ID3 dentro del MP3
+xing = true                     # cabecera Xing/Info al principio
+compresor = false               # comprimir y limitar, para entornos ruidosos
 
 # --- Producción del aviso ------------------------------------------------
 campanilla = true               # «din-don» antes del mensaje
@@ -51,3 +54,8 @@ campanilla = true
 [perfiles.nocturno]
 volumen = "-10%"
 campanilla = false
+
+# El programa trae de fábrica el perfil «echo», para los equipos de voceo de
+# estacionamiento que exigen un MP3 que empiece directamente en el audio:
+#     voceo generar "..." --perfil echo
+# Si defines aquí un [perfiles.echo] propio, el tuyo tiene preferencia.
