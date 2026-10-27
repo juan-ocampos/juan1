@@ -401,9 +401,24 @@ subida, para que un descuido no dispare el gasto ni el tiempo de espera.
 **«ffmpeg no está instalado»** — `pip install imageio-ffmpeg`, o instálalo desde
 el gestor de paquetes del sistema.
 
-**«edge-tts no pudo generar el audio»** — casi siempre es la red. Si el centro
-comercial usa un proxy, exporta `HTTPS_PROXY`; si además inspecciona el tráfico
-HTTPS, indica el certificado de la empresa con `VOCEO_CA_BUNDLE=/ruta/ca.crt`.
+**«edge-tts no pudo generar el audio… 403»** — la versión instalada de
+edge-tts se quedó atrás. Microsoft firma cada petición con un testigo
+(`Sec-MS-GEC`) cuyo esquema cambia cada cierto tiempo, y cada versión de
+edge-tts trae el del momento; cuando Microsoft lo cambia, las versiones
+anteriores reciben un 403 y dejan de funcionar de golpe.
+
+```bash
+pip install -U "edge-tts>=7.3.1"
+```
+
+`voceo doctor` avisa si la versión instalada es demasiado antigua. Si tras
+actualizar sigue fallando, revisa el reloj del equipo: el testigo depende de la
+hora y un desfase de varios minutos da el mismo 403.
+
+**«edge-tts no pudo generar el audio»** por otros motivos — casi siempre es la
+red. Si el centro comercial usa un proxy, exporta `HTTPS_PROXY`; si además
+inspecciona el tráfico HTTPS, indica el certificado de la empresa con
+`VOCEO_CA_BUNDLE=/ruta/ca.crt`.
 
 **El aviso se entiende mal por los altavoces** — baja la velocidad
 (`--velocidad=-12%`), sube las repeticiones (`--repetir 2`) y usa `[pausa]`

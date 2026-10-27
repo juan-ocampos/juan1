@@ -4,7 +4,11 @@ import pytest
 
 from voceo import proveedores
 from voceo.config import Config
-from voceo.errores import ErrorDeConfiguracion, ProveedorNoDisponible
+from voceo.errores import (
+    ErrorDeConfiguracion,
+    ErrorDeSintesis,
+    ProveedorNoDisponible,
+)
 from voceo.proveedores.base import Proveedor
 from voceo.proveedores.edge import EdgeTTS
 from voceo.proveedores.elevenlabs import _factor_velocidad as factor_eleven
@@ -93,3 +97,64 @@ def test_piper_sin_modelo_explica_como_conseguirlo(monkeypatch, tmp_path):
     monkeypatch.setattr(piper, "CARPETAS_MODELOS", [tmp_path / "vacía"])
     with pytest.raises(ProveedorNoDisponible, match="onnx"):
         piper.PiperTTS(Config(voz="es-MX-Dalia")).verificar()
+
+
+# --- el 403 del servicio de Microsoft ------------------------------------
+from voceo.proveedores import edge as modulo_edge  # noqa: E402
+
+
+def test_detecta_el_403_por_el_atributo_status():
+    fallo = Exception("algo")
+    fallo.status = 403
+    assert modulo_edge._es_403(fallo)
+
+
+def test_detecta_el_403_en_el_texto():
+    assert modulo_edge._es_403(Exception("403, message='Invalid response status'"))
+
+
+def test_no_confunde_otros_numeros_con_un_403():
+    assert not modulo_edge._es_403(Exception("se recibieron 4030 bytes"))
+    assert not modulo_edge._es_403(Exception("500, error interno"))
+
+
+def test_el_mensaje_del_403_explica_como_arreglarlo():
+    mensaje = modulo_edge._mensaje_de_fallo("falló", Exception("403, Forbidden"))
+    assert "pip install -U" in mensaje
+    assert "reloj" in mensaje
+
+
+def test_los_demas_fallos_no_llevan_la_receta():
+    mensaje = modulo_edge._mensaje_de_fallo("falló", Exception("sin conexión"))
+    assert "pip install" not in mensaje
+
+
+def test_una_version_antigua_de_edge_tts_se_detecta(monkeypatch):
+    monkeypatch.setattr(modulo_edge, "_version_instalada", lambda: "7.2.8")
+    with pytest.raises(ProveedorNoDisponible, match="403"):
+        EdgeTTS(Config()).verificar()
+
+
+def test_la_version_vigente_pasa_la_comprobacion(monkeypatch):
+    monkeypatch.setattr(modulo_edge, "_version_instalada", lambda: modulo_edge.VERSION_MINIMA)
+    EdgeTTS(Config()).verificar()
+
+
+def test_una_version_mas_nueva_tambien_pasa(monkeypatch):
+    monkeypatch.setattr(modulo_edge, "_version_instalada", lambda: "8.0.0")
+    EdgeTTS(Config()).verificar()
+
+
+def test_el_403_al_sintetizar_llega_con_la_receta(monkeypatch, tmp_path):
+    def reventar(corutina, *args, **extra):
+        corutina.close()  # se cierra para no dejar una corrutina sin esperar
+        raise RuntimeError("403, message='Invalid response status'")
+
+    monkeypatch.setattr(modulo_edge.asyncio, "run", reventar)
+    with pytest.raises(ErrorDeSintesis, match="pip install -U"):
+        EdgeTTS(Config()).sintetizar("Hola", tmp_path / "a.mp3")
+
+
+@pytest.mark.parametrize("version,esperado", [("7.3.1", (7, 3, 1)), ("8.0", (8, 0))])
+def test_lectura_de_la_version(version, esperado):
+    assert modulo_edge._como_tupla(version) == esperado

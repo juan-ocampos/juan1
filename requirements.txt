@@ -1,5 +1,5 @@
 # Dependencias mínimas para usar el programa con el proveedor por defecto.
-edge-tts>=7.0
+edge-tts>=7.3.1
 tomli>=2.0; python_version < "3.11"
 
 # Recomendado: trae un ffmpeg listo para usar (campanilla, repeticiones,

@@ -22,7 +22,7 @@ classifiers = [
     "Topic :: Multimedia :: Sound/Audio :: Speech",
 ]
 dependencies = [
-    "edge-tts>=7.0",
+    "edge-tts>=7.3.1",
     # tomllib es parte de Python desde la 3.11; en la 3.10 se usa tomli.
     "tomli>=2.0; python_version < '3.11'",
 ]
